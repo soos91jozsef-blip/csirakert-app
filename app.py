@@ -43,7 +43,7 @@ if mentes:
     friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
     
     # Mentés vissza a Google Táblázatba
-    conn.update(worksheet="Sheet1", data=friss_adatok)
+    conn.update(worksheet="Munkalap1", data=friss_adatok)
     
     st.success(f"Mentve a táblázatba! {vasarlo} -> {vegosszeg} RSD")
     st.balloons()
