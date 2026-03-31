@@ -6,7 +6,7 @@ st.set_page_config(page_title="Csírakert Admin", page_icon="🌱")
 st.title("🌱 Csírakert Menedzser")
 
 AR_PER_DOBOZ = 200
-termekek = ["Retek csíra", "Lucerna csíra", "Búzafű", "Mix csomag", "Mustár csíra", "Brokkoli csíra"]
+termekek = ["Retek csíra", "Lucerna csíra", "Repce csira", "Vörös here csira", "Szendvics Mix", "Brokkoli csíra"]
 
 with st.form("rendeles_form", clear_on_submit=True):
     st.subheader("Új eladás rögzítése")
