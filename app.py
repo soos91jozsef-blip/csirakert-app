@@ -39,7 +39,7 @@ if mentes:
     }])
     
     # Meglévő adatok lekérése és az új hozzáadása
-    regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
+    regi_adatok = conn.read(spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"], worksheet="Munkalap1", ttl=0)
     friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
     
     # Mentés vissza a Google Táblázatba
@@ -52,7 +52,7 @@ if mentes:
 st.divider()
 st.subheader("Utolsó rendelések")
 try:
-    adatok = conn.read(worksheet="Munkalap1")
+    adatok = conn.read(spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"], worksheet="Munkalap1", ttl=0)
     st.dataframe(adatok.tail(5)) # Csak az utolsó 5 sort mutatja
 except:
     st.info("Még nincs mentett adat a táblázatban.")
