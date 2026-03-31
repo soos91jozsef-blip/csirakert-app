@@ -39,7 +39,7 @@ if mentes:
     }])
     
     # Meglévő adatok lekérése és az új hozzáadása
-    regi_adatok = conn.read(worksheet="Sheet1") # Ha a fül neve más, írd át!
+    regi_adatok = conn.read(worksheet="Munkalap1") # Ha a fül neve más, írd át!
     friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
     
     # Mentés vissza a Google Táblázatba
