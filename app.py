@@ -52,7 +52,7 @@ if mentes:
 st.divider()
 st.subheader("Utolsó rendelések")
 try:
-    adatok = conn.read(worksheet="Sheet1")
+    adatok = conn.read(worksheet="Munkalap1")
     st.dataframe(adatok.tail(5)) # Csak az utolsó 5 sort mutatja
 except:
     st.info("Még nincs mentett adat a táblázatban.")
