@@ -5,7 +5,7 @@ from datetime import date
 st.set_page_config(page_title="Csírakert Admin", page_icon="🌱")
 st.title("🌱 Csírakert Menedzser")
 
-AR_PER_DOBOZ = 200
+AR_PER_DOBOZ = 202
 termekek = ["Retek csíra", "Lucerna csíra", "Repce csira", "Vörös here csira", "Szendvics Mix", "Brokkoli csíra"]
 
 with st.form("rendeles_form", clear_on_submit=True):
