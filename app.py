@@ -38,7 +38,14 @@ if submit:
             "Összeg": vegosszeg,
             "Állapot": statusz
         }])
-        
+        try:
+            # Közvetlenül a munkalap végére fűzzük az új adatot
+            conn.create(worksheet="Munkalap1", data=uj_adat)
+            
+            st.success(f"Rendelés sikeresen mentve: {vasarlo}!")
+            st.balloons()
+        except Exception as e:
+            st.error(f"Hiba történt a mentéskor: {e}")
         try:
             # Meglévő adatok lekérése a "Munkalap1" fülről
             regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
