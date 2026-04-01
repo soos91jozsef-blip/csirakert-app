@@ -1,58 +1,71 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-from datetime import date
+from datetime import datetime
 
-# App beállítások
+# Oldal beállítása
 st.set_page_config(page_title="Csírakert Admin", page_icon="🌱")
-st.title("🌱 Csírakert Menedzser")
 
-# Kapcsolódás a Google Táblázathoz (a Secrets-ben megadott link alapján)
+st.title("🌱 Csírakert Rendelés Kezelő")
+
+# Kapcsolat létrehozása a Google Táblázattal
+# A Secrets-ben lévő linket használjuk
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Fix adatok
-AR_PER_DOBOZ = 200
-termekek = ["Retek csíra", "Lucerna csíra", "Búzafű", "Mix csomag", "Mustár csíra", "Brokkoli csíra"]
-
-# Rendelés felvétele
-with st.form("rendeles_form", clear_on_submit=True):
-    st.subheader("Új eladás rögzítése")
+# --- RENDELÉS FELVÉTELE ---
+with st.form("rendeles_form"):
+    st.subheader("Új rendelés hozzáadása")
+    
     vasarlo = st.text_input("Vásárló neve")
-    termek = st.selectbox("Csíra fajtája", termekek)
-    db = st.number_input("Hány doboz?", min_value=1, step=1, value=1)
+    termek = st.selectbox("Termék", ["Retek csíra", "Brokkoli csíra", "Búzafű", "Vegyes csomag"])
+    db = st.number_input("Mennyiség (db)", min_value=1, value=1)
+    egysegar = st.number_input("Egységár (RSD)", min_value=0, value=200)
+    statusz = st.radio("Állapot", ["Kifizetve", "Hitelbe"])
     
-    vegosszeg = db * AR_PER_DOBOZ
-    st.write(f"### Fizetendő: **{vegosszeg} RSD**")
-    
-    statusz = st.radio("Fizetés", ["Kifizetve", "Hitelbe"])
-    mentes = st.form_submit_button("Rendelés Mentése")
+    submit = st.form_submit_button("Rendelés Mentése")
 
-if mentes:
-    # Új sor előkészítése
-    uj_adat = pd.DataFrame([{
-        "Dátum": date.today().strftime("%Y-%m-%d"),
-        "Vásárló": vasarlo,
-        "Termék": termek,
-        "Mennyiség": db,
-        "Összeg": vegosszeg,
-        "Állapot": statusz
-    }])
-    
-    # Meglévő adatok lekérése és az új hozzáadása
-    regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
-    friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
-    
-    # Mentés vissza a Google Táblázatba
-    conn.update(worksheet="Munkalap1", data=friss_adatok)
-    
-    st.success(f"Mentve a táblázatba! {vasarlo} -> {vegosszeg} RSD")
-    st.balloons()
+if submit:
+    if vasarlo:
+        # Új sor előkészítése
+        most = datetime.now().strftime("%Y-%m-%d")
+        vegosszeg = db * egysegar
+        
+        uj_adat = pd.DataFrame([{
+            "Dátum": most,
+            "Vásárló": vasarlo,
+            "Termék": termek,
+            "Mennyiség": db,
+            "Összeg": vegosszeg,
+            "Állapot": statusz
+        }])
+        
+        try:
+            # Meglévő adatok lekérése a "Munkalap1" fülről
+            regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
+            
+            # Adatok összefűzése
+            friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
+            
+            # Mentés vissza a táblázatba
+            conn.update(worksheet="Munkalap1", data=friss_adatok)
+            
+            st.success(f"Mentve: {vasarlo} -> {vegosszeg} RSD")
+            st.balloons()
+        except Exception as e:
+            st.error(f"Hiba történt a mentéskor: {e}")
+    else:
+        st.warning("Kérlek, írd be a vásárló nevét!")
 
-# Előzmények mutatása
+# --- ELŐZMÉNYEK ---
 st.divider()
 st.subheader("Utolsó rendelések")
+
 try:
-    adatok = conn.read(worksheet="Munkalap1", ttl=0)
-    st.dataframe(adatok.tail(5)) # Csak az utolsó 5 sort mutatja
+    # Adatok frissítése és megjelenítése
+    megjelenitendo_adatok = conn.read(worksheet="Munkalap1", ttl=0)
+    if not megjelenitendo_adatok.empty:
+        st.dataframe(megjelenitendo_adatok.tail(10)) # Az utolsó 10 rendelés
+    else:
+        st.info("Még nincs mentett adat a táblázatban.")
 except:
-    st.info("Még nincs mentett adat a táblázatban.")
+    st.info("Nem sikerült betölteni az előzményeket.")
