@@ -70,8 +70,13 @@ t = szovegek[nyelv]
 
 st.title(t["cim"])
 
-# Kapcsolat létrehozása
+# Kapcsolat létrehozása a Google Táblázattal
 conn = st.connection("gsheets", type=GSheetsConnection)
+
+# --- RENDELÉS FELVÉTELE ---
+# A formon KÍVÜLRE tesszük a valuta választót, hogy azonnal frissíthesse az árat
+valuta = st.radio(t["valuta_cim"], ["RSD", "HUF"], horizontal=True)
+alap_ar = 200 if valuta == "RSD" else 650
 
 with st.form("rendeles_form"):
     st.subheader(t["alcim"])
@@ -79,12 +84,10 @@ with st.form("rendeles_form"):
     vasarlo = st.text_input(t["nev"])
     valasztott_termek_megjelenites = st.selectbox(t["termek_cim"], t["termekek"])
     
-    # Valuta és ár kezelése
-    valuta = st.radio(t["valuta_cim"], ["RSD", "HUF"], horizontal=True)
-    alap_ar = 200 if valuta == "RSD" else 650
+    # Az egységár most már az 'alap_ar' változót használja, ami követi a választót
     egysegar = st.number_input(f"{t['ar']} ({valuta})", min_value=0, value=alap_ar)
 
-    # Terméknév visszafordítása a mentéshez
+    # Terméknév visszafordítása a mentéshez (hogy a táblázat egységes maradjon)
     if nyelv == "🇷🇸 Srpski":
         termek_mentesre = [k for k, v in termek_forditas.items() if v == valasztott_termek_megjelenites][0]
     else:
@@ -97,6 +100,7 @@ with st.form("rendeles_form"):
 
 if submit:
     if vasarlo:
+        # Új sor előkészítése
         most = datetime.now().strftime("%Y-%m-%d")
         vegosszeg = db * egysegar
         osszeg_szoveg = f"{vegosszeg} {valuta}"
@@ -111,9 +115,13 @@ if submit:
         }])
         
         try:
-            # Mentés a meglévő "Munkalap1"-re (a hibás conn.create részt kivettem)
+            # Meglévő adatok lekérése (hibás create rész nélkül)
             regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
+            
+            # Adatok összefűzése
             friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
+            
+            # Mentés vissza a táblázatba
             conn.update(worksheet="Munkalap1", data=friss_adatok)
             
             st.success(f"{t['siker']}: {vasarlo} -> {osszeg_szoveg}")
@@ -123,7 +131,7 @@ if submit:
     else:
         st.warning(t["figyelmeztetes"])
 
-# Előzmények megjelenítése
+# --- ELŐZMÉNYEK ---
 st.divider()
 st.subheader(t["elozmeny"])
 
