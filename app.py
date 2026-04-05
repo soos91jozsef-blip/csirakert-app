@@ -64,7 +64,7 @@ try:
     # Adatok frissítése és megjelenítése
     megjelenitendo_adatok = conn.read(worksheet="Munkalap1", ttl=0)
     if not megjelenitendo_adatok.empty:
-        st.dataframe(megjelenitendo_adatok.tail(10)) # Az utolsó 10 rendelés
+        st.dataframe(megjelenitendo_adatok.tail(10)) # Az utolsó 1 rendelés
     else:
         st.info("Még nincs mentett adat a táblázatban.")
 except:
