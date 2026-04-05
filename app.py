@@ -33,9 +33,10 @@ szovegek = {
         "alcim": "Új rendelés hozzáadása",
         "nev": "Vásárló neve",
         "termek_cim": "Válassz terméket",
-        "termekek": list(termek_forditas.keys()), # Eredeti magyar nevek
+        "termekek": list(termek_forditas.keys()),
+        "valuta_cim": "Fizetés pénzneme",
         "db": "Mennyiség (db)",
-        "ar": "Egységár (RSD)",
+        "ar": "Egységár",
         "statusz": "Állapot",
         "statusz_opciok": ["Kifizetve", "Hitelbe"],
         "mentes": "Rendelés Mentése",
@@ -50,9 +51,10 @@ szovegek = {
         "alcim": "Dodaj novu porudžbinu",
         "nev": "Ime kupca",
         "termek_cim": "Izaberi proizvod",
-        "termekek": list(termek_forditas.values()), # Lefordított szerb nevek
+        "termekek": list(termek_forditas.values()),
+        "valuta_cim": "Valuta plaćanja",
         "db": "Količina (kom)",
-        "ar": "Jedinična cena (RSD)",
+        "ar": "Jedinična cena",
         "statusz": "Status",
         "statusz_opciok": ["Plaćeno", "Na dug"],
         "mentes": "Sačuvaj porudžbinu",
@@ -68,24 +70,27 @@ t = szovegek[nyelv]
 
 st.title(t["cim"])
 
+# Kapcsolat létrehozása
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 with st.form("rendeles_form"):
     st.subheader(t["alcim"])
     
     vasarlo = st.text_input(t["nev"])
-    # Itt a választott nyelven jelennek meg a termékek
     valasztott_termek_megjelenites = st.selectbox(t["termek_cim"], t["termekek"])
     
-    # TRÜKK: Ha szerbül van, keressük vissza a magyar nevét a mentéshez
+    # Valuta és ár kezelése
+    valuta = st.radio(t["valuta_cim"], ["RSD", "HUF"], horizontal=True)
+    alap_ar = 200 if valuta == "RSD" else 650
+    egysegar = st.number_input(f"{t['ar']} ({valuta})", min_value=0, value=alap_ar)
+
+    # Terméknév visszafordítása a mentéshez
     if nyelv == "🇷🇸 Srpski":
-        # Megkeressük, melyik magyar névhez tartozik a szerb választás
         termek_mentesre = [k for k, v in termek_forditas.items() if v == valasztott_termek_megjelenites][0]
     else:
         termek_mentesre = valasztott_termek_megjelenites
 
     db = st.number_input(t["db"], min_value=1, value=1)
-    egysegar = st.number_input(t["ar"], min_value=0, value=200)
     statusz = st.radio(t["statusz"], t["statusz_opciok"])
     
     submit = st.form_submit_button(t["mentes"])
@@ -94,28 +99,31 @@ if submit:
     if vasarlo:
         most = datetime.now().strftime("%Y-%m-%d")
         vegosszeg = db * egysegar
+        osszeg_szoveg = f"{vegosszeg} {valuta}"
         
         uj_adat = pd.DataFrame([{
             "Dátum": most,
             "Vásárló": vasarlo,
-            "Termék": termek_mentesre, # A táblázatba a fix magyar név kerül
+            "Termék": termek_mentesre,
             "Mennyiség": db,
-            "Összeg": vegosszeg,
+            "Összeg": osszeg_szoveg,
             "Állapot": statusz
         }])
         
         try:
+            # Mentés a meglévő "Munkalap1"-re (a hibás conn.create részt kivettem)
             regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
             friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
             conn.update(worksheet="Munkalap1", data=friss_adatok)
             
-            st.success(f"{t['siker']}: {vasarlo} -> {vegosszeg} RSD")
+            st.success(f"{t['siker']}: {vasarlo} -> {osszeg_szoveg}")
             st.balloons()
         except Exception as e:
             st.error(f"Hiba / Greška: {e}")
     else:
         st.warning(t["figyelmeztetes"])
 
+# Előzmények megjelenítése
 st.divider()
 st.subheader(t["elozmeny"])
 
