@@ -7,8 +7,24 @@ from datetime import datetime
 st.set_page_config(page_title="Csírakert Admin", page_icon="🌱")
 
 # --- NYELV VÁLASZTÓ ---
-# Zászlós választó az oldal tetején
 nyelv = st.radio("Nyelv / Jezik:", ["🇭🇺 Magyar", "🇷🇸 Srpski"], horizontal=True)
+
+# Termék szótár (Magyar név: Szerb név)
+termek_forditas = {
+    "Retek Mix": "Miks rotkvica",
+    "Brokkoli": "Brokoli",
+    "Búzafű": "Pšenična trava",
+    "Vajrépa": "Bela repa",
+    "Lucerna": "Lucerka",
+    "Repce": "Repica",
+    "Vöröslencse": "Crvena sočiva",
+    "Mungóbab": "Mungo pasulj",
+    "Szendvics Mix": "Sendvič miks",
+    "Lila Karalábé": "Ljubičasti kolerabi",
+    "Fodros Kel": "Kovrdžavi kelj",
+    "Vöröshere": "Crvena detelina",
+    "Vöröskáposzta": "Crveni kupus"
+}
 
 # Szótár az app szövegeihez
 szovegek = {
@@ -16,7 +32,8 @@ szovegek = {
         "cim": "🌱 Csírakert Rendelés Kezelő",
         "alcim": "Új rendelés hozzáadása",
         "nev": "Vásárló neve",
-        "termek": "Termék",
+        "termek_cim": "Válassz terméket",
+        "termekek": list(termek_forditas.keys()), # Eredeti magyar nevek
         "db": "Mennyiség (db)",
         "ar": "Egységár (RSD)",
         "statusz": "Állapot",
@@ -32,7 +49,8 @@ szovegek = {
         "cim": "🌱 Upravljanje porudžbinama",
         "alcim": "Dodaj novu porudžbinu",
         "nev": "Ime kupca",
-        "termek": "Proizvod",
+        "termek_cim": "Izaberi proizvod",
+        "termekek": list(termek_forditas.values()), # Lefordított szerb nevek
         "db": "Količina (kom)",
         "ar": "Jedinična cena (RSD)",
         "statusz": "Status",
@@ -46,20 +64,26 @@ szovegek = {
     }
 }
 
-# Aktuális szövegek kiválasztása
 t = szovegek[nyelv]
 
 st.title(t["cim"])
 
-# Kapcsolat létrehozása a Google Táblázattal
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# --- RENDELÉS FELVÉTELE ---
 with st.form("rendeles_form"):
     st.subheader(t["alcim"])
     
     vasarlo = st.text_input(t["nev"])
-    termek = st.selectbox(t["termek"], ["Retek Mix", "Brokkoli", "Búzafű", "Vajrépa", "Lucerna", "Repce", "Vöröslencse", "Mungóbab", "Szendvics Mix", "Lila Karalábé", "Fodros Kel", "Vöröshere", "Vöröskáposzta"])
+    # Itt a választott nyelven jelennek meg a termékek
+    valasztott_termek_megjelenites = st.selectbox(t["termek_cim"], t["termekek"])
+    
+    # TRÜKK: Ha szerbül van, keressük vissza a magyar nevét a mentéshez
+    if nyelv == "🇷🇸 Srpski":
+        # Megkeressük, melyik magyar névhez tartozik a szerb választás
+        termek_mentesre = [k for k, v in termek_forditas.items() if v == valasztott_termek_megjelenites][0]
+    else:
+        termek_mentesre = valasztott_termek_megjelenites
+
     db = st.number_input(t["db"], min_value=1, value=1)
     egysegar = st.number_input(t["ar"], min_value=0, value=200)
     statusz = st.radio(t["statusz"], t["statusz_opciok"])
@@ -68,27 +92,21 @@ with st.form("rendeles_form"):
 
 if submit:
     if vasarlo:
-        # Új sor előkészítése
         most = datetime.now().strftime("%Y-%m-%d")
         vegosszeg = db * egysegar
         
         uj_adat = pd.DataFrame([{
             "Dátum": most,
             "Vásárló": vasarlo,
-            "Termék": termek,
+            "Termék": termek_mentesre, # A táblázatba a fix magyar név kerül
             "Mennyiség": db,
             "Összeg": vegosszeg,
             "Állapot": statusz
         }])
         
         try:
-            # Meglévő adatok lekérése a "Munkalap1" fülről
             regi_adatok = conn.read(worksheet="Munkalap1", ttl=0)
-            
-            # Adatok összefűzése
             friss_adatok = pd.concat([regi_adatok, uj_adat], ignore_index=True)
-            
-            # Mentés vissza a táblázatba
             conn.update(worksheet="Munkalap1", data=friss_adatok)
             
             st.success(f"{t['siker']}: {vasarlo} -> {vegosszeg} RSD")
@@ -98,12 +116,10 @@ if submit:
     else:
         st.warning(t["figyelmeztetes"])
 
-# --- ELŐZMÉNYEK ---
 st.divider()
 st.subheader(t["elozmeny"])
 
 try:
-    # Adatok frissítése és megjelenítése
     megjelenitendo_adatok = conn.read(worksheet="Munkalap1", ttl=0)
     if not megjelenitendo_adatok.empty:
         st.dataframe(megjelenitendo_adatok.tail(10)) 
