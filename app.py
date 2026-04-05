@@ -17,7 +17,7 @@ with st.form("rendeles_form"):
     st.subheader("Új rendelés hozzáadása")
     
     vasarlo = st.text_input("Vásárló neve")
-    termek = st.selectbox("Termék", ["Retek csíra", "Brokkoli csíra", "Búzafű", "Vegyes csomag"])
+    termek = st.selectbox("Termék", ["Retek Mix", "Brokkoli", "Búzafű", "Vajrépa", "Lucerna", "Repce", "Vöröslencse", "Mungóbab", "Szendvics Mix", "Lila Karalábé", "Fodros Kel", "Vöröshere", "Vöröskáposzta"])
     db = st.number_input("Mennyiség (db)", min_value=1, value=1)
     egysegar = st.number_input("Egységár (RSD)", min_value=0, value=200)
     statusz = st.radio("Állapot", ["Kifizetve", "Hitelbe"])
